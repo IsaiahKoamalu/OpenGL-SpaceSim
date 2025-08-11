@@ -1,0 +1,32 @@
+# Build dirs
+cmake-build-debug/
+cmake-build-release/
+build/
+
+# IDE
+.idea/
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Binaries/objs
+*.exe
+*.dll
+*.so
+*.dylib
+*.obj
+*.o
+*.a
+*.lib
+*.pdb
+
+# Logs/temp
+*.log
+*.tmp
+
+# Third-party builds
+third_party/*/build/
+third_party/*/bin/
+third_party/*/lib/
