@@ -20,7 +20,7 @@ void main()
 {
     // World Pos
     vec4 wp = model * vec4(aPos, 1.0);
-    vs.worldPos = wp.xyz;
+    vs.worldPos = wp.xyx;
 
     // Normal Matrix
     mat3 N = mat3(transpose(inverse(model)));
@@ -28,7 +28,7 @@ void main()
     vs.worldN = n;
 
     // Stable tangent basis from norm
-    vec3 up = (abs(n.y) > 0.00) ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+    vec3 up = (abs(n.y) > 0.99) ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
     vec3 t = normalize(cross(up, n));
     vec3 b = cross(n, t);
     vs.worldT = t;

@@ -33,18 +33,19 @@ CameraMatrices computeCamera(const Registry& reg, Entity cameraEntity)
 
 void renderSystem(Registry& reg, Shader& shader, const CameraMatrices& cam, const glm::vec3& sunDir)
 {
-    shader.use();
-    shader.setMat4("view", glm::value_ptr(cam.view));
-    shader.setMat4("projection", glm::value_ptr(cam.proj));
-    shader.setVec3("uSunDir", glm::normalize(sunDir));
-    shader.setVec3("uCameraWorld", cam.eyeWorld);
-
     // ALL renderables
     reg.for_each<Transform, Material, MeshComponent>([&](Entity, Transform& t, Material& m, MeshComponent& mc)
     {
         Shader& sh = m.shader ? *m.shader : shader;
         sh.use();
-        glm::mat4 model = modelFrom(t);
+        sh.setMat4("view", glm::value_ptr(cam.view));
+        sh.setMat4("projection", glm::value_ptr(cam.proj));
+        sh.setVec3("uCameraWorld", cam.eyeWorld);
+        sh.setVec3("uSunDir", glm::normalize(sunDir));
+
+        glm::mat4 model = glm::translate(glm::mat4(1), t.position)
+                        * glm::mat4_cast(t.rotation)
+                        * glm::scale(glm::mat4(1), t.scale);
         sh.setMat4("model", glm::value_ptr(model));
 
         // Mat Params
