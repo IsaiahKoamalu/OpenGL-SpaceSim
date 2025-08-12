@@ -21,7 +21,6 @@ void main() {
     vec3 base = uHasAlbedo ? texture(uAlbedo, vUV).rgb : uAlbedoColor;
 
     vec3 N    = normalize(vWorldN);                       // world
-    N = -N;
     vec3 Lvec = uPL.position - vWorldPos;                 // world
     float dist= length(Lvec);
     vec3 L    = Lvec / max(dist, 1e-6);

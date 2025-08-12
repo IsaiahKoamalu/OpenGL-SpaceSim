@@ -42,6 +42,7 @@ add_executable(SpaceSimulation
         src/Systems/InputSystem.cpp
         src/Systems/IntegrateSystem.cpp
         src/Systems/CameraFollowSystem.cpp
+        src/Systems/PointLightSystem.cpp
         third_party/glad/src/glad.c
 )
 

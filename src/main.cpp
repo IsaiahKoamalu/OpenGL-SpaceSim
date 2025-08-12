@@ -10,6 +10,7 @@
 #include "Systems/CameraFollowSystem.h"
 #include "Systems/InputSystem.h"
 #include "Systems/IntegrateSystem.h"
+#include "Systems/PointLightSystem.h"
 #include "Components/Transform.h"
 #include "Components/MeshComponent.h"
 #include "Components/Material.h"
@@ -89,6 +90,7 @@ int main()
         inputSystem(window, registry, ship, dt);
         integrateSystem(registry, dt);
         cameraFollowSystem(registry, camE, ship);
+        updatePointLightPositions(registry);
 
         int w, h;
         glfwGetFramebufferSize(window, &w, &h);
