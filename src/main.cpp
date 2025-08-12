@@ -41,6 +41,7 @@ int main()
 
     // Shader
     Shader planetShader("shaders/planet.vert", "shaders/planet.frag");
+    Shader sunShader("shaders/sun.vert", "shaders/sun.frag");
 
     // Registry (obv)
     Registry registry;
@@ -58,11 +59,11 @@ int main()
     registry.get<Transform>(camE) = Transform{ glm::vec3(0, 1.6f, 5) };
 
     // Planet entity
-    Entity planet = registry.create();
-    MeshComponent planetMesh{ Mesh::fromSphere(1.0f, 64, 128)};
-    registry.emplace<Transform>(planet, Transform{glm::vec3(0,0,0)});
-    registry.emplace<MeshComponent>(planet, std::move(planetMesh));
-    registry.emplace<Material>(planet, Material{&planetShader, glm::vec3(0.3f, 0.6f, 0.9f)});
+    Entity sun = registry.create();
+    MeshComponent sunMesh{Mesh::fromSphere(10.0f, 64, 128)};
+    registry.emplace<Transform>(sun, Transform{glm::vec3(0,0,0)});
+    registry.emplace<MeshComponent>(sun, sunMesh);
+    registry.emplace<Material>(sun, Material{&sunShader, glm::vec3(0.3f, 0.6f, 0.9f)});
 
     double last = glfwGetTime();
     while (!glfwWindowShouldClose(window))
@@ -87,7 +88,7 @@ int main()
                                     registry.get<Camera>(camE).farPlane);
 
         glm::vec3 sunDir = glm::normalize(glm::vec3(1.0f, -0.4f, -2.f));
-        renderSystem(registry, planetShader, cam, sunDir);
+        renderSystem(registry, sunShader, cam, sunDir);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

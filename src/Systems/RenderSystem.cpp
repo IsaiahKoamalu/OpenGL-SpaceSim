@@ -52,6 +52,15 @@ void renderSystem(Registry& reg, Shader& shader, const CameraMatrices& cam, cons
         sh.setVec3("uAlbedoColor", m.albedo);
         sh.setBool("uHasAlbedo", false);
         sh.setBool("uHasNight", false);
+        sh.setVec3("uEmissiveColor", glm::vec3(1.0f, 0.95f, 0.8f));
+        sh.setFloat("uEmissiveIntensity", 6.0f);
+        sh.setBool("uUseEmissiveTex", m.useEmissiveTex);
+        //if (m.useEmissiveTex && m.emissiveTex)
+        //{
+            //glActiveTexture(GL_TEXTURE0);
+            //glBindTexture(GL_TEXTURE_2D, m.emissiveTex->id());
+            //sh.setInt("uEmissiveTex", 0);
+        //}
 
         mc.mesh.draw();
     });

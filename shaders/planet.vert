@@ -20,7 +20,7 @@ void main()
 {
     // World Pos
     vec4 wp = model * vec4(aPos, 1.0);
-    vs.worldPos = wp.xyx;
+    vs.worldPos = wp.xyz;
 
     // Normal Matrix
     mat3 N = mat3(transpose(inverse(model)));
