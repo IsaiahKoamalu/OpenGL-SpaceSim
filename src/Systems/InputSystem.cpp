@@ -44,6 +44,8 @@ void inputSystem(GLFWwindow* win, Registry& reg, Entity ship, float dt)
     if (glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS) accLocal.x += sc.thrustSide * boost;
     if (glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS)        accLocal.y += sc.thrustUp * boost;
     if (glfwGetKey(win, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) accLocal.y -= sc.thrustUp * boost;
+    //Close window (exit program)
+    if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(win, true);
 
     glm::vec3 accWorld = glm::mat3_cast(tr.rotation) * accLocal;
     ve.linear += accWorld * dt;

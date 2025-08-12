@@ -16,6 +16,7 @@
 #include "Components/Camera.h"
 #include "Components/Velocity.h"
 #include "Components/ShipControl.h"
+#include "Components/PointLight.h"
 #include "Rendering/Shader.h"
 #include "Rendering/Mesh.h"
 
@@ -27,7 +28,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Space Sim", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(2560, 1900, "Space Sim", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -59,11 +60,24 @@ int main()
     registry.get<Transform>(camE) = Transform{ glm::vec3(0, 1.6f, 5) };
 
     // Planet entity
+    Entity planet = registry.create();
+    MeshComponent planetMesh{Mesh::fromSphere(2.0, 64, 128)};
+    registry.emplace<MeshComponent>(planet, planetMesh);
+    registry.emplace<Transform>(planet, Transform{glm::vec3(15, 0, 0)});
+    registry.emplace<Material>(planet, Material{&planetShader});
+
+    // Sun entity
     Entity sun = registry.create();
     MeshComponent sunMesh{Mesh::fromSphere(10.0f, 64, 128)};
     registry.emplace<Transform>(sun, Transform{glm::vec3(0,0,0)});
     registry.emplace<MeshComponent>(sun, sunMesh);
     registry.emplace<Material>(sun, Material{&sunShader, glm::vec3(0.3f, 0.6f, 0.9f)});
+    registry.emplace<PointLight>(sun, PointLight{
+        .position = registry.get<Transform>(sun).position,
+        .color = {1.0f, 0.98f, 0.9f},
+        .intensity = 80.0f,
+        .radius = 120.0f
+    });
 
     double last = glfwGetTime();
     while (!glfwWindowShouldClose(window))
