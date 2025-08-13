@@ -8,7 +8,7 @@
 
 struct InputState
 {
-    bool W=false, A=false, S=false, D=false, Space=false, Ctrl = false;
+    bool W=false, A=false, S=false, D=false, Space=false, Ctrl = false, Esc = false;
     float mouseDx=0.f, mouseDy=0.f; // Pix since last frame
 };
 
@@ -27,6 +27,7 @@ public:
             cam.pitch += in.mouseDy * cam.sensitivity;
             cam.pitch = glm::clamp(cam.pitch, -1.5f, 1.5f);
 
+            // Camera basis
             const glm::vec3 fwd
             {
                 cosf(cam.pitch) * cosf(cam.yaw),
@@ -48,6 +49,19 @@ public:
             cam.pos += v * cam.speed * dt;
         });
     }
+
+    // Helper for view matrix
+    static glm::mat4 viewFrom(const Camera& cam)
+    {
+        glm::vec3 fwd
+        {
+            cosf(cam.pitch) * cosf(cam.yaw),
+            sinf(cam.pitch),
+            cosf(cam.pitch) * sinf(cam.yaw)
+        };
+        return glm::lookAt(cam.pos, cam.pos + fwd, {0,1,0});
+    }
+
 private:
     Registry* r{};
     InputState in{};

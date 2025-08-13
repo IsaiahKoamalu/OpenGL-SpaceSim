@@ -4,11 +4,20 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <memory>
 #include "EntityManager.h"
 #include "Components/Camera.h"
+#include "Components/Drawable.h"
+#include "Components/Orbit.h"
+#include "Components/PointLight.h"
+#include "Components/Transform.h"
 #include "Core/Registry.h"
+#include "Rendering/RenderBackend.h"
 #include "Systems/CameraSystem.h"
+#include "Systems/OribitSystem.h"
+#include "Systems/RenderSystem.h"
 
 
 static void framebuffer_size(GLFWwindow*, int w, int h){glViewport(0,0,w,h);}
@@ -20,9 +29,12 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow* window = glfwCreateWindow(400, 400, "Space Sim", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1200, 700, "Space Sim", nullptr, nullptr);
     glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size);
+    glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int w, int h)
+    {
+        glViewport(0, 0, w, h);
+    });
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
@@ -35,12 +47,55 @@ int main()
     EntityManager EM;
     Registry R;
 
+    CameraSystem camSys(&R);
+
+    auto loadText = [](const char* path)
+    {
+        std::ifstream f(path);
+        std::stringstream ss;
+        ss << f.rdbuf();
+        return ss.str();
+    };
+
     R.registerComponent<Camera>();
+    R.registerComponent<Transform>();
+    R.registerComponent<Drawable>();
+    R.registerComponent<PointLight>();
+    R.registerComponent<Orbit>();
 
     Entity camE = EM.createEntity();
     R.add<Camera>(camE, Camera{});
 
-    CameraSystem camSys(&R);
+    // Backend + Mesh
+    RenderBackend backend;
+
+    std::string vsSrc = loadText("shaders/planet.vert");
+    std::string fsSrc = loadText("shaders/planet.frag");
+    std::fprintf(stderr, "[SHADERS] VS len=%zu, FS len=%zu\n", vsSrc.size(), fsSrc.size());
+    std::fprintf(stderr, "[SHADERS] VS starts: %.40s\n", vsSrc.c_str());
+    std::fprintf(stderr, "[SHADERS] FS starts: %.40s\n", fsSrc.c_str());
+    if (!backend.init(vsSrc, fsSrc))
+    {
+        fprintf(stderr, "Shader init failed\n");
+    }
+
+    int sphereMesh = backend.createUnitSphere(48, 64);
+
+    // Render System
+    RenderSystem renderSys(&R, &backend, 1280, 720);
+
+    OrbitSystem orbitSys(&R);
+
+    // Sum Entity
+    Entity sun = EM.createEntity();
+    R.add<Transform>(sun, Transform{glm::vec3(0), glm::vec3(0), glm::vec3(2.0f)});
+    R.add<Drawable>(sun, Drawable{sphereMesh, glm::vec3(1.0f, 0.95f, 0.7f)});
+    R.add<PointLight>(sun, PointLight{glm::vec3(1.0f, 0.95f, 0.85f), 200.0f});
+
+    Entity planet = EM.createEntity();
+    R.add<Transform>(planet, Transform{glm::vec3(8,0,0), glm::vec3(0), glm::vec3(1.0f)});
+    R.add<Drawable>(planet, Drawable{sphereMesh, glm::vec3(0.2f, 0.4f, 1.0f)});
+    R.add<Orbit>(planet, Orbit{true});
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     double lastX=0, lastY=0;
@@ -71,14 +126,20 @@ int main()
         in.A = keyDown(window, GLFW_KEY_A);
         in.Space = keyDown(window, GLFW_KEY_SPACE);
         in.Ctrl = keyDown(window, GLFW_KEY_LEFT_CONTROL);
+        if (keyDown(window, GLFW_KEY_ESCAPE))
+        {
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
         in.mouseDx = dx;
         in.mouseDy = dy;
         camSys.setInput(in);
 
         camSys.update(dt);
+        orbitSys.update(dt);
 
-        glClearColor(0.02f, 0.02f, 0.04f, 1.0f);
+        glClearColor(0.02f, 0.02f, 0.04f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        renderSys.update(dt);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

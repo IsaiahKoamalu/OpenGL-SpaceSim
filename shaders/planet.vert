@@ -1,22 +1,20 @@
 #version 330 core
 layout(location=0) in vec3 aPos;
 layout(location=1) in vec3 aNormal;
-layout(location=2) in vec2 aUV;
 
-uniform mat4 model, view, projection;
+uniform mat4 uModel;   // model -> world
+uniform mat4 uView;    // world -> view (for gl_Position only)
+uniform mat4 uProj;    // view  -> clip
 
-out vec2 vUV;
-out vec3 vWorldPos;
-out vec3 vWorldN;
+out vec3 vWorldPos;    // WORLD space
+out vec3 vWorldN;      // WORLD space
 
-void main() {
-    vec4 wp = model * vec4(aPos, 1.0);
+void main(){
+    vec4 wp = uModel * vec4(aPos, 1.0);
     vWorldPos = wp.xyz;
 
-    // IMPORTANT: build normal from MODEL only (not view*model)
-    mat3 Nmat = mat3(transpose(inverse(model)));
+    mat3 Nmat = mat3(transpose(inverse(uModel))); // MODEL only
     vWorldN   = normalize(Nmat * aNormal);
 
-    vUV = aUV;
-    gl_Position = projection * view * wp;
+    gl_Position = uProj * uView * wp;             // only for rasterization
 }
