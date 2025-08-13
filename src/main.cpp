@@ -5,31 +5,22 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <memory>
-#include "Core/Registry.h"
-#include "Systems/RenderSystem.h"
-#include "Systems/CameraFollowSystem.h"
-#include "Systems/InputSystem.h"
-#include "Systems/IntegrateSystem.h"
-#include "Systems/PointLightSystem.h"
-#include "Components/Transform.h"
-#include "Components/MeshComponent.h"
-#include "Components/Material.h"
+#include "EntityManager.h"
 #include "Components/Camera.h"
-#include "Components/Velocity.h"
-#include "Components/ShipControl.h"
-#include "Components/PointLight.h"
-#include "Rendering/Shader.h"
-#include "Rendering/Mesh.h"
+#include "Core/Registry.h"
+#include "Systems/CameraSystem.h"
+
 
 static void framebuffer_size(GLFWwindow*, int w, int h){glViewport(0,0,w,h);}
+static bool keyDown(GLFWwindow* w, int k) {return glfwGetKey(w, k) == GLFW_PRESS;}
 
 int main()
 {
-    glfwInit();
+    if (!glfwInit()) return -1;
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow* window = glfwCreateWindow(2560, 1900, "Space Sim", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(400, 400, "Space Sim", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -41,72 +32,64 @@ int main()
     glFrontFace(GL_CCW);
     glClearColor(0.05f, 0.06f, 0.08f, 1.0f);
 
-    // Shader
-    Shader planetShader("shaders/planet.vert", "shaders/planet.frag");
-    Shader sunShader("shaders/sun.vert", "shaders/sun.frag");
+    EntityManager EM;
+    Registry R;
 
-    // Registry (obv)
-    Registry registry;
+    R.registerComponent<Camera>();
 
-    // Camera entity
-    Entity camE = registry.create();
-    registry.emplace<Transform>(camE, Transform{glm::vec3(0,1.8f, 5) });
-    registry.emplace<Camera>(camE, Camera{60.f, 0.1f, 1000.f, true});
+    Entity camE = EM.createEntity();
+    R.add<Camera>(camE, Camera{});
 
-    Entity ship = registry.create();
-    registry.emplace<Transform>(ship, Transform{glm::vec3(0, 1.5f, 0)});
-    registry.emplace<Velocity>(ship, Velocity{});
-    registry.emplace<ShipControl>(ship, ShipControl{});
+    CameraSystem camSys(&R);
 
-    registry.get<Transform>(camE) = Transform{ glm::vec3(0, 1.6f, 5) };
-
-    // Planet entity
-    Entity planet = registry.create();
-    MeshComponent planetMesh{Mesh::fromSphere(2.0, 64, 128)};
-    registry.emplace<MeshComponent>(planet, planetMesh);
-    registry.emplace<Transform>(planet, Transform{glm::vec3(15, 0, 0)});
-    registry.emplace<Material>(planet, Material{&planetShader});
-
-    // Sun entity
-    Entity sun = registry.create();
-    MeshComponent sunMesh{Mesh::fromSphere(10.0f, 64, 128)};
-    registry.emplace<Transform>(sun, Transform{glm::vec3(0,0,0)});
-    registry.emplace<MeshComponent>(sun, sunMesh);
-    registry.emplace<Material>(sun, Material{&sunShader, glm::vec3(0.3f, 0.6f, 0.9f)});
-    registry.emplace<PointLight>(sun, PointLight{
-        .position = registry.get<Transform>(sun).position,
-        .color = {1.0f, 0.98f, 0.9f},
-        .intensity = 80.0f,
-        .radius = 120.0f
-    });
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    double lastX=0, lastY=0;
+    bool firstMouse=true;
 
     double last = glfwGetTime();
+    double acc = 0;
     while (!glfwWindowShouldClose(window))
     {
         double now = glfwGetTime();
         float dt = float(now - last);
         last = now;
+        acc += dt;
 
-        inputSystem(window, registry, ship, dt);
-        integrateSystem(registry, dt);
-        cameraFollowSystem(registry, camE, ship);
-        updatePointLightPositions(registry);
+        double x,y;
+        glfwGetCursorPos(window, &x, &y);
+        float dx=0.f, dy=0.f;
+        if (firstMouse){lastX=x; lastY=y; firstMouse=false;}
+        dx = float(x - lastX);
+        dy = float(lastY - y);
+        lastX = x;
+        lastY = y;
 
-        int w, h;
-        glfwGetFramebufferSize(window, &w, &h);
-        glViewport(0, 0, w, h);
+        InputState in{};
+        in.W = keyDown(window, GLFW_KEY_W);
+        in.S = keyDown(window, GLFW_KEY_S);
+        in.D = keyDown(window, GLFW_KEY_D);
+        in.A = keyDown(window, GLFW_KEY_A);
+        in.Space = keyDown(window, GLFW_KEY_SPACE);
+        in.Ctrl = keyDown(window, GLFW_KEY_LEFT_CONTROL);
+        in.mouseDx = dx;
+        in.mouseDy = dy;
+        camSys.setInput(in);
+
+        camSys.update(dt);
+
+        glClearColor(0.02f, 0.02f, 0.04f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        auto cam = computeCamera(registry, camE);
-        cam.proj = glm::perspective(glm::radians(registry.get<Camera>(camE).fov),
-                                    (h>0? float(w)/h : 4.f/3.f),
-                                    registry.get<Camera>(camE).nearPlane,
-                                    registry.get<Camera>(camE).farPlane);
-
-        glm::vec3 sunDir = glm::normalize(glm::vec3(1.0f, -0.4f, -2.f));
-        renderSystem(registry, sunShader, cam, sunDir);
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        if (acc > 1.0)
+        {
+            const auto& c = R.get<Camera>(camE);
+            std::printf("Cam pos: %.2f %.2f %.2f | yaw=%.2f pitch=%.2f\n",
+                        c.pos.x, c.pos.y, c.pos.z, c.yaw, c.pitch);
+            acc = 0;
+        }
     }
     glfwTerminate();
     return 0;

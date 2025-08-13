@@ -13,8 +13,7 @@ uniform bool uHasAlbedo;
 uniform sampler2D uAlbedo;
 
 uniform float uShininess = 64.0;
-//uniform float uSpecStrength = 0.2;
-const float uSpecStrength = 0.0;
+uniform float uSpecStrength = 0.2;
 
 
 void main() {

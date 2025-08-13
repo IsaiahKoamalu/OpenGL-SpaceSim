@@ -1,14 +1,8 @@
-#ifndef POINTLIGHT_H
-#define POINTLIGHT_H
-
-#include <glm/glm.hpp>
+#pragma once
+#include <glm\glm.hpp>
 
 struct PointLight
 {
-    glm::vec3 position;
-    glm::vec3 color = glm::vec3(1.0f, 0.98f, 0.9f);
-    float intensity = 50.0f;
-    float radius = 100.0f;
+    glm::vec3 color{1.0f, 0.95f, 0.85f};
+    float intensity = 500.0f;
 };
-
-#endif

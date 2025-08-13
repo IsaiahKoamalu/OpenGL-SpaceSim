@@ -1,14 +1,11 @@
-#ifndef CAMERA_H
-#define CAMERA_H
-
+#pragma once
 #include <glm/glm.hpp>
 
 struct Camera
 {
-    float fov = 60.f;
-    float nearPlane = 0.1f;
-    float farPlane = 1000.f;
-    bool primary = true;
+    glm::vec3 pos{0.0f, 0.0f, 15.0f};
+    float yaw = -1.5707963f;
+    float pitch = 0.0f;
+    float speed = 10.0f;
+    float sensitivity = 0.002f;
 };
-
-#endif

@@ -4,6 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "Core/Registry.h"
 #include "Rendering/Shader.h"
+#include "Components/Camera.h"
 
 struct CameraMatrices
 {
@@ -12,6 +13,6 @@ struct CameraMatrices
 };
 
 CameraMatrices computeCamera(const Registry& reg, Entity cameraEntity);
-void renderSystem(Registry& reg, Shader& shader, const CameraMatrices& cam, const glm::vec3& sunDir);
+void renderSystem(Registry& reg, Shader& shader, const CameraMatrices& cam);
 
 #endif

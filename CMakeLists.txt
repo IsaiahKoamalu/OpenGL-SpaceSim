@@ -33,16 +33,6 @@ add_library(engine
 
 add_executable(SpaceSimulation
         src/main.cpp
-        include/Rendering/Shader.h
-        src/Shader.cpp
-        include/Components/CameraComponent.h
-        include/Rendering/Mesh.h
-        src/Rendering/Mesh.cpp
-        src/Systems/RenderSystem.cpp
-        src/Systems/InputSystem.cpp
-        src/Systems/IntegrateSystem.cpp
-        src/Systems/CameraFollowSystem.cpp
-        src/Systems/PointLightSystem.cpp
         third_party/glad/src/glad.c
 )
 
