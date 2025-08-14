@@ -11,8 +11,19 @@ struct Mesh {
     GLsizei indexCount=0;
 };
 
-class RenderBackend {
+class RenderBackend
+{
 public:
+    bool initSkyBoxProgram(const std::string& vsSrc, const std::string& fsSrc)
+    {
+        skyBoxProg = link(compile(GL_VERTEX_SHADER, vsSrc), compile(GL_FRAGMENT_SHADER, fsSrc));
+        if (!skyBoxProg) return false;
+        uSB_View = glGetUniformLocation(skyBoxProg, "uViewNoTrans");
+        uSB_Proj = glGetUniformLocation(skyBoxProg, "uProj");
+        uSB_Sampler = glGetUniformLocation(skyBoxProg, "uSky");
+        return true;
+    }
+
     bool init(const std::string& vsSrc, const std::string& fsSrc) {
         GLuint vs = compile(GL_VERTEX_SHADER,   vsSrc);
         GLuint fs = compile(GL_FRAGMENT_SHADER, fsSrc);
@@ -35,6 +46,77 @@ public:
         req(uAlbedoColor,"uAlbedoColor"); req(uLightPosWS,"uLightPosWS");
         req(uLightColor,"uLightColor"); req(uLightIntensity,"uLightIntensity"); req(uCamPos,"uCamPos");
         return true;
+    }
+
+    void createSkyBoxCube()
+    {
+        const float verts[] =
+        {
+            -1,-1,-1,  -1, 1,-1,   1, 1,-1,   1, 1,-1,   1,-1,-1,  -1,-1,-1,
+            -1,-1, 1,   1,-1, 1,   1, 1, 1,   1, 1, 1,  -1, 1, 1,  -1,-1, 1,
+            -1, 1, 1,   1, 1, 1,   1, 1,-1,   1, 1,-1,  -1, 1,-1,  -1, 1, 1,
+            -1,-1, 1,  -1,-1,-1,   1,-1,-1,   1,-1,-1,   1,-1, 1,  -1,-1, 1,
+             1,-1, 1,   1,-1,-1,   1, 1,-1,   1, 1,-1,   1, 1, 1,   1,-1, 1,
+            -1,-1, 1,  -1, 1, 1,  -1, 1,-1,  -1, 1,-1,  -1,-1,-1,  -1,-1, 1
+        };
+        glGenVertexArrays(1, &skyboxVAO);
+        glGenBuffers(1, &skyboxVBO);
+        glBindVertexArray(skyboxVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glBindVertexArray(0);
+    }
+
+    int createCubeMap(const std::array<unsigned char*, 6>& images,
+                      const std::array<int,6>& widths,
+                      const std::array<int,6>& heights,
+                      bool srgb = false)
+    {
+        GLuint tex = 0;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, tex);
+
+        GLenum internal = srgb ? GL_SRGB8_ALPHA8 : GL_RGB8;
+        for (int i = 0; i < 6; ++i)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, internal,
+                          widths[i], heights[i], 0, GL_RGBA, GL_UNSIGNED_BYTE, images[i]);
+        }
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        return (int)tex;
+    }
+
+    void DrawSkyBox(const glm::mat4& view, const glm::mat4 proj, int cubemapTex)
+    {
+        if (!skyBoxProg || cubemapTex <= 0) return;
+
+        glm::mat4 viewNoTrans = glm::mat4(glm::mat4(view));
+
+        glDepthMask(GL_FALSE);
+        glDepthFunc(GL_LEQUAL);
+
+        glUseProgram(skyBoxProg);
+        glUniformMatrix4fv(uSB_View, 1, GL_FALSE, glm::value_ptr(viewNoTrans));
+        glUniformMatrix4fv(uSB_Proj, 1, GL_FALSE, glm::value_ptr(proj));
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, (GLuint)cubemapTex);
+        glUniform1i(uSB_Sampler, 0);
+
+        glBindVertexArray(skyboxVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+        // Restore depth state
+        glDepthFunc(GL_LESS);
+        glDepthMask(GL_TRUE);
     }
 
     int createUnitSphere(int stacks=32, int slices=32){
@@ -133,6 +215,12 @@ public:
     }
 
 private:
+    // Skybox
+    GLuint skyBoxProg = 0;
+    GLint uSB_View=-1, uSB_Proj=-1, uSB_Sampler=-1;
+    GLuint skyboxVAO = 0, skyboxVBO = 0;
+
+    //Planet/Sun
     GLuint prog=0;
     GLint uModel=-1, uView=-1, uProj=-1;
     GLint uAlbedoColor=-1, uLightPosWS=-1, uLightColor=-1, uLightIntensity=-1, uCamPos=-1;
