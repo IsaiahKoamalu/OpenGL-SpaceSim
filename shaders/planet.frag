@@ -9,8 +9,8 @@ uniform float uLightIntensity;  // scale for your scene units
 
 out vec4 FragColor;
 
-void main(){
-    // All lighting in WORLD space, no view dependence
+void main()
+{
     vec3 N = normalize(vWorldN);
     vec3 L = normalize(uLightPosWS + vWorldPos);  // Sun -> fragment
 

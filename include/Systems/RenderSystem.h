@@ -7,13 +7,15 @@
 #include "Components/Transform.h"
 #include "Components/Drawable.h"
 #include "Components/PointLight.h"
+#include "Components/Skybox.h"
 #include "Systems/CameraSystem.h"
 #include "Rendering/RenderBackend.h"
 
 class RenderSystem : public ISystem {
 public:
     RenderSystem(Registry* reg, RenderBackend* backend, int width, int height)
-        : r(reg), gfx(backend) {
+        : r(reg), gfx(backend)
+    {
         setViewport(width, height);
     }
 
@@ -58,6 +60,20 @@ public:
                 cam.pos
             });
         });
+
+        // Drawing skybox
+        int skyTex = -1;
+        r->view<Skybox>([&](Entity, Skybox& s)
+        {
+            if (skyTex < 0)
+            {
+                skyTex = s.cubeMap;
+            }
+        });
+        if (skyTex > 0)
+        {
+            gfx->drawSkyBox(view, proj, skyTex);
+        }
     }
 
 private:

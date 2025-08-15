@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <cstdio>
+#include <Utils/ImageLoader.h>
 
 struct Mesh {
     GLuint vao=0, vbo=0, ebo=0;
@@ -93,18 +94,45 @@ public:
         return (int)tex;
     }
 
-    void DrawSkyBox(const glm::mat4& view, const glm::mat4 proj, int cubemapTex)
+    int createCubeMapFromFile(const std::array<std::string,6>& files, bool srgb = true)
+    {
+        std::array<LoadedImage, 6> imgs;
+        for (int i=0; i<6; ++i)
+        {
+            imgs[i] = loadImageRGBA(files[i]);
+            if (!imgs[i].ok())
+            {
+                std::fprintf(stderr, "[cubemap] Failed Face %d: %s\n", i, files[i].c_str());
+                return -1;
+            }
+        }
+        std::array<unsigned char*, 6> ptrs{};
+        std::array<int, 6> widths{}, heights{};
+        for (int i = 0; i < 6; ++i)
+        {
+            ptrs[i] = imgs[i].pixels.data();
+            widths[i] = imgs[i].w;
+            heights[i] = imgs[i].h;
+        }
+
+        return createCubeMap(ptrs, widths, heights, srgb);
+    };
+
+    void drawSkyBox(const glm::mat4& view, const glm::mat4& proj, int cubemapTex)
     {
         if (!skyBoxProg || cubemapTex <= 0) return;
 
-        glm::mat4 viewNoTrans = glm::mat4(glm::mat4(view));
+        auto viewNoTrans = glm::mat4(glm::mat3(view));
 
         glDepthMask(GL_FALSE);
         glDepthFunc(GL_LEQUAL);
 
+        glDisable(GL_CULL_FACE);
+
         glUseProgram(skyBoxProg);
         glUniformMatrix4fv(uSB_View, 1, GL_FALSE, glm::value_ptr(viewNoTrans));
         glUniformMatrix4fv(uSB_Proj, 1, GL_FALSE, glm::value_ptr(proj));
+
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, (GLuint)cubemapTex);
         glUniform1i(uSB_Sampler, 0);
@@ -112,11 +140,13 @@ public:
         glBindVertexArray(skyboxVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
-        // Restore depth state
+        // Unbind texture + restore depth state
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
         glDepthFunc(GL_LESS);
         glDepthMask(GL_TRUE);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
     }
 
     int createUnitSphere(int stacks=32, int slices=32){

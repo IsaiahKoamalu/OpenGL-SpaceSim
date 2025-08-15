@@ -26,13 +26,15 @@ FetchContent_MakeAvailable(glm)
 find_package(OpenGL REQUIRED)
 
 add_library(engine
-        src/main.cpp
+        main.cpp
+        src/ImageLoader.cpp
         include/Rendering/Shader.h
 
 )
 
 add_executable(SpaceSimulation
-        src/main.cpp
+        main.cpp
+        src/ImageLoader.cpp
         third_party/glad/src/glad.c
 )
 
@@ -64,3 +66,9 @@ add_custom_target(copy_shaders ALL
         ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
 add_dependencies(SpaceSimulation copy_shaders)
+
+# copy assets to the build dir after build
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets)

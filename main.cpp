@@ -7,11 +7,13 @@
 #include <fstream>
 #include <sstream>
 #include <memory>
+#include <filesystem>
 #include "EntityManager.h"
 #include "Components/Camera.h"
 #include "Components/Drawable.h"
 #include "Components/Orbit.h"
 #include "Components/PointLight.h"
+#include "Components/Skybox.h"
 #include "Components/Transform.h"
 #include "Core/Registry.h"
 #include "Rendering/RenderBackend.h"
@@ -19,6 +21,7 @@
 #include "Systems/OribitSystem.h"
 #include "Systems/RenderSystem.h"
 
+using std::filesystem::current_path;
 
 static void framebuffer_size(GLFWwindow*, int w, int h){glViewport(0,0,w,h);}
 static bool keyDown(GLFWwindow* w, int k) {return glfwGetKey(w, k) == GLFW_PRESS;}
@@ -26,6 +29,8 @@ static bool keyDown(GLFWwindow* w, int k) {return glfwGetKey(w, k) == GLFW_PRESS
 int main()
 {
     if (!glfwInit()) return -1;
+    std::cout << "[cwd] " << current_path() << "\n";
+    std::cout << "[exists sky.png?] " << (std::filesystem::exists("sky.png)") ? "yes" : "no") << "\n";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -57,6 +62,7 @@ int main()
         return ss.str();
     };
 
+    R.registerComponent<Skybox>();
     R.registerComponent<Camera>();
     R.registerComponent<Transform>();
     R.registerComponent<Drawable>();
@@ -66,8 +72,30 @@ int main()
     Entity camE = EM.createEntity();
     R.add<Camera>(camE, Camera{});
 
-    // Backend + Mesh
+    // Backend
     RenderBackend backend;
+
+    // ----- Sky Box -------------------------------------------
+    std::string sbVsSrc = loadText("shaders/skybox.vert");
+    std::string sbFsSrc= loadText("shaders/skybox.frag");
+    if (!backend.initSkyBoxProgram(sbVsSrc, sbFsSrc))
+    {
+        std::fprintf(stderr, "Skybox shader init failed\n");
+    }
+    backend.createSkyBoxCube();
+
+    std::string path = "assets/images/sky.png";
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    std::array<std::string,6> files =
+        {
+            path, path, path,
+            path, path, path
+        };
+    int skyTex = backend.createCubeMapFromFile(files, true);
+    std::cout << "[skybox] tex id = " << skyTex << "\n";
+    Entity sky = EM.createEntity();
+    R.add<Skybox>(sky, Skybox{ skyTex });
+    // ---------------------------------------------------------------
 
     std::string vsSrc = loadText("shaders/planet.vert");
     std::string fsSrc = loadText("shaders/planet.frag");
