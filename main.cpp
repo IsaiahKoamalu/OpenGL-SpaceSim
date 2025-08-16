@@ -112,18 +112,23 @@ int main()
     // Render System
     RenderSystem renderSys(&R, &backend, 1280, 720);
 
+    // Orbit System
     OrbitSystem orbitSys(&R);
 
-    // Sum Entity
+    // Sun Entity
     Entity sun = EM.createEntity();
     R.add<Transform>(sun, Transform{glm::vec3(0), glm::vec3(0), glm::vec3(2.0f)});
     R.add<Drawable>(sun, Drawable{sphereMesh, glm::vec3(1.0f, 0.95f, 0.7f)});
     R.add<PointLight>(sun, PointLight{glm::vec3(1.0f, 0.95f, 0.85f), 200.0f});
 
+    // Planet Entity
     Entity planet = EM.createEntity();
     R.add<Transform>(planet, Transform{glm::vec3(8,0,0), glm::vec3(0), glm::vec3(1.0f)});
     R.add<Drawable>(planet, Drawable{sphereMesh, glm::vec3(0.2f, 0.4f, 1.0f)});
-    R.add<Orbit>(planet, Orbit{true});
+    R.add<Orbit>(planet, Orbit{20, 0.01671022,
+               glm::radians(0.00005), glm::radians(-11.26064),
+          glm::radians(102.94719), glm::radians(100.46435),
+                 1.32712440018e20, 0.0 });
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     double lastX=0, lastY=0;
